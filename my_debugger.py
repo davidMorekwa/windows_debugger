@@ -63,6 +63,14 @@ class Debugger():
             error = get_last_error()
             print(f"[-] Unable to attach to process. Error: {error}")
 
+    def run(self):
+        """
+        main entry point of class
+        """
+        while self.debugger_active == True:
+            print("waiting for debug events")
+            self.get_debug_event()
+
     def get_debug_event(self):
         """
         handles debug events and ensures the debugging continues
@@ -73,8 +81,9 @@ class Debugger():
         is_event_thrown = kernel32.WaitForDebugEvent(byref(debug_event), INFINITE)
         print(f"is_event_thrown: {is_event_thrown}")
         if is_event_thrown:
-            input("press enter to continue...") # simulate debugging process
-            # self.debugger_active = False
+            print("event is thrown")
+            # input("press enter to continue...") # simulate debugging process
+            self.debugger_active = False
             kernel32.ContinueDebugEvent(debug_event.dwProcessId, debug_event.dwThreadId, continue_status)
         else:
             e = get_last_error()
@@ -108,41 +117,55 @@ class Debugger():
         """
         Enumerate threads of a process and return list of threads
         """
+        print("Enumerating threads")
         thread_entry = THREADENTRY32()
         thread_list = [] # list of thread Ids
         snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, self.pid)
-        if snapshot is not None:
+        invalid_handle_value = INVALID_HANDLE_VALUE
+        if snapshot != invalid_handle_value:
             thread_entry.dwSize = sizeof(thread_entry)
             is_success = kernel32.Thread32First(snapshot, byref(thread_entry))
             while is_success:
                 if thread_entry.th32OwnerProcessID == self.pid:
                     thread_list.append(thread_entry.th32ThreadID)
-                    is_success = kernel32.Thread32Next(snapshot, byref(thread_entry))
+                is_success = kernel32.Thread32Next(snapshot, byref(thread_entry))
             kernel32.CloseHandle(snapshot)
             return thread_list
         else:
             e = get_last_error()
             print(f"Error enumerating threads: {e}")
     
+    def suspend_thread(self, h_thread):
+        sus = kernel32.SuspendThread(h_thread)
+        if sus != INVALID_HANDLE_VALUE:
+            return sus
+        else:
+            e = get_last_error()
+            print(f"An error occurred when suspending the thread: {e}")
+            return False
+
+    
     def get_thread_context(self, thread_id):
         """
         Return register values
         """
-        context = CONTEXT()
+        context = CONTEXT64()
         context.ContextFlags = CONTEXT_FULL # CONTEXT_FULL or CONTEXT_DEBUG_REGISTER
         h_thread = self.open_thread(thread_id)
+        if not h_thread:
+            return False
+        suspension = self.suspend_thread(h_thread)
+        if not suspension:
+            return False
         if kernel32.GetThreadContext(h_thread, byref(context)):
+            # kernel32.ResumeThread(h_thread)
             kernel32.CloseHandle(h_thread)
             return context
         else:
             e = get_last_error()
             print(f"Error getting thread context: {e}")
+            # kernel32.ResumeThread(h_thread)
+            kernel32.CloseHandle(h_thread)
             return False
 
-    def run(self):
-        """
-        main entry point of class
-        """
-        while self.debugger_active == True:
-            print("waiting for debug events")
-            self.get_debug_event()
+    
