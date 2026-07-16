@@ -10,7 +10,7 @@ kernel32.OpenProcess.restype = wintypes.HANDLE
 
 # SuspendThread function
 kernel32.SuspendThread.argtypes = [HANDLE]
-kernel32.SuspendThread.restypes = [DWORD]
+kernel32.SuspendThread.restypes = DWORD
 
 # ReadProcessMemory function
 kernel32.ReadProcessMemory.argtypes = [wintypes.HANDLE, wintypes.LPCVOID, wintypes.LPVOID, c_size_t, POINTER(c_size_t) ]

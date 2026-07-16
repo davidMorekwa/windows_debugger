@@ -102,6 +102,7 @@ class Debugger():
                     print("Harware Breakpoint Exception detected")
             # input("press enter to continue...") # simulate debugging process
             # self.debugger_active = False
+            kernel32.CloseHandle(self.h_thread)
             kernel32.ContinueDebugEvent(debug_event.dwProcessId, debug_event.dwThreadId, continue_status)
         else:
             print("Waiting for debug events.....")
@@ -145,6 +146,7 @@ class Debugger():
                     thread_list.append(thread_entry.th32ThreadID)
                 is_success = kernel32.Thread32Next(snapshot, byref(thread_entry))
             kernel32.CloseHandle(snapshot)
+            print(f"Thread count: {len(thread_list)}")
             return thread_list
         else:
             e = get_last_error()
@@ -156,6 +158,7 @@ class Debugger():
         """
         sus = kernel32.SuspendThread(h_thread)
         if sus != INVALID_HANDLE_VALUE:
+            print("Thread suspended")
             return sus
         else:
             e = get_last_error()
@@ -167,11 +170,8 @@ class Debugger():
         Return CONTEXT64 object of a thread
         """
         context = CONTEXT64()
-        context.ContextFlags = CONTEXT_FULL # CONTEXT_FULL or CONTEXT_DEBUG_REGISTER
-        suspension = self.suspend_thread(h_thread)
-        if not suspension:
-            print("Failed to suspend thread")
-            return False
+        context.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS
+        self.suspend_thread(h_thread)
         if kernel32.GetThreadContext(h_thread, byref(context)):
             # kernel32.ResumeThread(h_thread)
             kernel32.CloseHandle(h_thread)
@@ -186,7 +186,7 @@ class Debugger():
         """
         Brekapoint handler
         """
-        print(f"Inside the breakpoint exception handler function. Address {self.exception_address:#010x}")
+        print(f"Inside the soft breakpoint exception handler function. Address {self.exception_address:#010x}")
         return DBG_CONTINUE
 
     def read_process_memory(self, address, length):
@@ -227,6 +227,7 @@ class Debugger():
                 original_byte = self.read_process_memory(address, 1)
                 print(f"Original bytes in address {address:#010x} is {str(original_byte)}")
                 self.write_process_memory(address, b"\xCC")
+                self.breakpoints[address] = (address, original_byte)
             except (OSError, ValueError, TypeError) as exc:
                 print(f"Failed to set breakpoint: {exc}")
                 return False
