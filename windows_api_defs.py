@@ -4,6 +4,22 @@ from my_debugger_defines import *
 
 kernel32 = WinDLL('kernel32', use_last_error=True)
 
+# DebugActiveProcess function
+kernel32.DebugActiveProcess.argtypes = [wintypes.DWORD]
+kernel32.DebugActiveProcess.restype = wintypes.BOOL
+
+# DebugActiveProcessStop function
+kernel32.DebugActiveProcessStop.argtypes = [wintypes.DWORD]
+kernel32.DebugActiveProcessStop.restype = wintypes.BOOL
+
+# WaitForDebugEvent function
+kernel32.WaitForDebugEvent.argtypes = [POINTER(DEBUG_EVENT), wintypes.DWORD]
+kernel32.WaitForDebugEvent.restype = wintypes.BOOL
+
+# ContinueDebugEvent function
+kernel32.ContinueDebugEvent.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD]
+kernel32.ContinueDebugEvent.restype = wintypes.BOOL
+
 # OpenProcess function
 kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
 kernel32.OpenProcess.restype = wintypes.HANDLE

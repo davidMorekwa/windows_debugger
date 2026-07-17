@@ -1,10 +1,11 @@
 from ctypes import *
 import time
+import os
 
-msvcrt = cdll.msvcrt
+ucrt = CDLL('msvcrt.dll')
 counter = 0
-
+print(f"PID: {os.getpid()} PPID: {os.getppid()}")
 while True:
-    msvcrt.printf(b"Loop counter in C: %d\n"% counter)
+    ucrt.printf(b"Loop counter in C: %d\n"% counter)
     time.sleep(5)
     counter+=1

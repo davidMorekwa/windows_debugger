@@ -35,13 +35,13 @@ def dump_register_content(dbg):
 
 if __name__ == "__main__":
     debugger = my_debugger.Debugger()
-    # pid = debugger.load("C:\\Windows\\System32\\calc.exe")
     pid = startup_script()
     debugger.attach(int(pid))
     # dump_register_content(debugger)
-    address = debugger.func_resolve(b"msvcrt.dll", b"printf")
-    print(f"printf function address: {address:#010x}")
+    address = debugger.func_resolve(b"user32.dll", b"CreateWindowExW")
+    print(f"CreateWindowExW function address: {address:#010x}")
     debugger.set_soft_breakpoint(address)
+    print(f"Recorded breakpoint: {debugger.breakpoints}")
     debugger.run()
     debugger.detach()
         

@@ -89,17 +89,26 @@ class Debugger():
             if debug_event.dwDebugEventCode == EXCEPTION_DEBUG_EVENT:
                 print("Debug Event Exception detected")
                 self.exception = debug_event.u.Exception.ExceptionRecord.ExceptionCode
+                print(f"Execption code: {self.exception}")
                 self.exception_address = debug_event.u.Exception.ExceptionRecord.ExceptionAddress
+                print(f"Exception address {self.exception_address}")
                 self.ctx_thread = self.get_thread_context(self.h_thread)
                 if self.exception == EXCEPTION_ACCESS_VIOLATION:
                     print("Access Violation Exception detected")
                 elif self.exception == EXCEPTION_BREAKPOINT:
-                    print(f"Breakpoint Exception detected at address {self.exception_address:#010x}")
-                    continue_status = self.exception_breakpoint_handler()
+                    if self.exception_address in self.breakpoints:
+                        print("USER defined breakpoint")
+                        self.exception_breakpoint_handler()
+                    else:
+                        print("SYSTEM breakpoint")
+                        continue_status = DBG_CONTINUE
                 elif self.exception == EXCEPTION_GUARD_PAGE:
                     print("Guard Page Access Exception detected")
                 elif self.exception == EXCEPTION_SINGLE_STEP:
                     print("Harware Breakpoint Exception detected")
+                else:
+                    print("I dont care about this exception")
+                    continue_status = DBG_CONTINUE
             # input("press enter to continue...") # simulate debugging process
             # self.debugger_active = False
             kernel32.CloseHandle(self.h_thread)
@@ -227,6 +236,8 @@ class Debugger():
                 original_byte = self.read_process_memory(address, 1)
                 print(f"Original bytes in address {address:#010x} is {str(original_byte)}")
                 self.write_process_memory(address, b"\xCC")
+                new_address_byte = self.read_process_memory(address, 1)
+                print(f"New data in breakpoint address: {str(new_address_byte)}")
                 self.breakpoints[address] = (address, original_byte)
             except (OSError, ValueError, TypeError) as exc:
                 print(f"Failed to set breakpoint: {exc}")
